@@ -1,4 +1,3 @@
-const fs = require('fs');
 
 const AUTHORIZATION_TOKEN = "Basic dGVzdDp0ZXN0";
 const SCHOOL_IDS = [
@@ -85,18 +84,6 @@ const fetchProfessorData = async (profId) => {
     return data;
 };
 
-const writeProfessorDataToFile = async (profId, data) => {
-    return new Promise((resolve, reject) => {
-        const filePath = `professor_${profId}.json`;
-        fs.writeFile(filePath, JSON.stringify(data, null, 2), (err) => {
-            if (err) {
-                reject(err);
-            } else {
-                resolve(filePath);
-            }
-        });
-    });
-};
 
 const queryProfessorData = async (profName) => {
     try {
@@ -104,8 +91,10 @@ const queryProfessorData = async (profName) => {
         if (professorIdResponse) {
             const professorId = professorIdResponse.data.newSearch.teachers.edges[0].node.id;
             const professorData = await fetchProfessorData(professorId);
-            const filePath = await writeProfessorDataToFile(professorId, professorData);
-            console.log(`Professor data saved to: ${filePath}`);
+            console.log(`Professor data was created`);
+            return professorData;
+            // const filePath = await writeProfessorDataToFile(professorId, professorData);
+            
         } else {
             console.log("Professor not found.");
         }
@@ -113,6 +102,4 @@ const queryProfessorData = async (profName) => {
         console.error("An error occurred:", error.message);
     }
 };
-
-// Example usage
-queryProfessorData("Liran Ma");
+// queryProfessorData("Liran Ma");

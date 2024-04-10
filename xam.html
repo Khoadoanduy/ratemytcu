@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <h1>Alo</h1>
+    <table>
+        <tbody>
+            <tr></tr>
+            <tr></tr>
+            <tr></tr>
+            <tr></tr>
+            <tr></tr>
+            <tr></tr>
+            <tr></tr>
+            <tr></tr>
+            <tr></tr>
+            <tr></tr>
+            <tr></tr>
+            <tr></tr>
+            <tr></tr>
+            <tr></tr>
+            <tr></tr>
+        </tbody>
+    </table>
+    <script>
+        function addUniqueClassToRows() {
+        var rows = document.querySelectorAll('tr');
+        var classNames = Array.from({ length: rows.length }, (_, index) => 'class' + (index + 1));
+
+        rows.forEach(function(row, index) {
+            row.classList.add(classNames[index]);
+        });
+        }
+
+// Call the function
+        addUniqueClassToRows();
+    </script>
+</body>
+</html>

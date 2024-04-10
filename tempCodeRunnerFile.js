@@ -1,1 +1,0 @@
-console.log(response.data.newSearch.teachers.edges[0].node.id);
