@@ -1,1 +1,0 @@
-getReview("ma liran")

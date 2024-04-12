@@ -36,81 +36,104 @@ const PROFESSOR_DATA_QUERY = `
     }
 `;
 
-const fetchProfessorId = async (profName) => {
-    for (const schoolId of SCHOOL_IDS) {
-        const response = await fetchProfessorIdForSchool(profName, schoolId);
-        if (response.data.newSearch.teachers.edges.length !== 0) {
-            return response;
-        }
-    }
-    return null;
+const fetchProfIDFallbackLoop = (profName) => {
+	return new Promise(async (resolve, reject) => {
+		let response = null;
+		let raw_response = null;
+		for (let i = 0; i < SCHOOL_IDS.length; i++) {
+			const SCHOOL_ID = SCHOOL_IDS[i];
+			raw_response = await fetch(
+				"https://www.ratemyprofessors.com/graphql",
+				{
+					method: "POST",
+					headers: {
+						Authorization: AUTHORIZATION_TOKEN,
+					},
+					body: JSON.stringify({
+						query: PROFESSOR_ID_QUERY,
+						variables: {
+							query: { text: profName, schoolID: SCHOOL_ID },
+						},
+					}),
+				}
+			);
+
+			response = await raw_response.json();
+			if (response.data.newSearch.teachers.edges.length !== 0) {
+				resolve(response);
+				return;
+			}
+		}
+
+		resolve(response);
+		return;
+	});
 };
 
-const fetchProfessorIdForSchool = async (profName, schoolId) => {
-    const response = await fetch("https://www.ratemyprofessors.com/graphql", {
-        method: "POST",
-        headers: {
-            "Authorization": AUTHORIZATION_TOKEN,
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-            query: PROFESSOR_ID_QUERY,
-            variables: {
-                query: { text: profName, schoolID: schoolId }, // USE the ID QUERY
-            },
-        }),
-    });
-    return response.json();
+const profIDCache = new Map();
+const fetchProfID = async (profName) => {
+	if (!profIDCache.has(profName)) {
+		const profIDFetch = fetchProfIDFallbackLoop(profName);
+		profIDCache.set(profName, profIDFetch);
+	}
+	return profIDCache.get(profName);
 };
 
-
-const fetchProfessorData = async (profId) => {
-    const response = await fetch("https://www.ratemyprofessors.com/graphql", {
-        method: "POST",
-        headers: {
-            "Authorization": AUTHORIZATION_TOKEN,
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-            query: PROFESSOR_DATA_QUERY, 
-            variables: {
-                id: profId, // USE the Data query with ID
-            },
-        }),
-    });
-    const data = await response.json();
-    if (data.errors) {
-        throw new Error(data.errors[0].message);
-    }
-    console.log(data)
-    return data;
+const queryProfID = async function queryProfIDAsync(profName, sendResponse) {
+	try {
+		const response = await fetchProfID(profName);
+		sendResponse(response);
+	} catch (error) {
+		sendResponse(new Error(error));
+	}
 };
 
+const profDataCache = new Map();
+const fetchProfData = (profID) => {
+	if (!profDataCache.has(profID)) {
+		const profDataFetch = fetch(
+			"https://www.ratemyprofessors.com/graphql",
+			{
+				method: "POST",
+				headers: {
+					Authorization: AUTHORIZATION_TOKEN,
+				},
+				body: JSON.stringify({
+					query: PROFESSOR_DATA_QUERY,
+					variables: {
+						id: profID,
+					},
+				}),
+			}
+		);
+		console.log(profDataFetch)
+		// return profDataFetch;
+		profDataCache.set(profID, profDataFetch);
+	} // Debugging purposes
+	return profDataCache.get(profID);
+};
 
-const queryProfessorData = async (profName) => {
-    try {
-        const professorIdResponse = await fetchProfessorId(profName);
-        if (professorIdResponse) {
-            const professorId = professorIdResponse.data.newSearch.teachers.edges[0].node.id;
-            const professorData = await fetchProfessorData(professorId);
-            return professorData;
-            // const filePath = await writeProfessorDataToFile(professorId, professorData);
-            
-        } else {
-            console.log("Professor not found.");
-        }
-    } catch (error) {
-        console.error("An error occurred:", error.message);
-    }
+const queryProfData = async function queryProfDataAsync(profID, sendResponse) {
+	try {
+        console.log("starting fetching");
+		const raw_response = await fetchProfData(profID);
+		const response = await raw_response.clone().json();
+
+		sendResponse(response);
+	} catch (error) {
+		sendResponse(new Error(error));
+	}
 };
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 	switch (request.contentScriptQuery) {
 		case "queryProfID":
+            console.log("received ID query");
 			queryProfID(request.profName, sendResponse);
 			return true;
 
 		case "queryProfData":
+            console.log("received review query");
 			queryProfData(request.profID, sendResponse);
 			return true;
 

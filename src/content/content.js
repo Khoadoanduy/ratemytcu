@@ -12,7 +12,7 @@ function waitForFirstLoad() {
 }
 
 function startObserver() {
-	console.log("Page fully loaded");
+	// console.log("Page fully loaded");
 	// trigger first time
 	onRenderHandler();
 
@@ -20,10 +20,10 @@ function startObserver() {
 function onRenderHandler() {
 	// check if there is h1 tag with content "No classes found"
 	if ($('span:contains("No matching classes were found")').length > 0) {
-		console.log("NONE");
+		// console.log("NONE");
 		return;
 	}
-	console.log("FOUND");
+	// console.log("FOUND");
 
 	
 	// Set up RMP column
@@ -41,7 +41,7 @@ function onRenderHandler() {
 	// for each row, get each row, fetch data, append data
 	
 }
-document.body.style.backgroundColor = '#ccc';
+
 
 
 
@@ -107,11 +107,10 @@ function addBox() {
         var tds = row.querySelectorAll('td');
         if (!row.querySelector('.rmpRes')) {
             let placeholderBox = $("<td>").addClass("rmpRes").text("loading");
-            $(".box7").after(placeholderBox);
+            $(row).find(".box7").after(placeholderBox);
         }
     });
 }
-
 
 
 
@@ -121,80 +120,66 @@ function getProfessorNamesFromSearch() {
     var tableRows = document.querySelectorAll('table.results tbody tr');
     
     tableRows.forEach(function(row) {
-        var courseInfoCell = row.querySelectorAll('td:nth-child(7)')[0];
+        var courseInfoCell = row.querySelector('td.box7');
         if (courseInfoCell) {
-            var courseInfo = courseInfoCell.textContent.trim();
+            var courseInfoLines = courseInfoCell.innerHTML.trim().split('<br>');
+            var courseInfo = courseInfoLines[courseInfoLines.length - 1]; // Taking the last line
             var reversed = courseInfo.split('').reverse().join('');
-            if( reversed.substring(0,5) === "ffatS"){ 
+            if (reversed.substring(0, 5) === "ffatS") { 
                 professorNames.push('Staff');
-            }
-            else{
-                professorNames.push(courseInfo.split(',')[1]);
+            } else {
+                var parts = courseInfo.split(',');
+                if (parts.length === 2) {
+                    var names = parts[1].trim().split(' ');
+                    var fullName = parts[0].trim() + ' ' + names[0];
+                    var trimmed = fullName.trim().replace("</font>", "")
+                    professorNames.push(trimmed);
+                } else {
+                    professorNames.push(parts[1]);
+                }
             }
         }
     });
     
     return professorNames;
 }
-// async function processScore(){
-// 	console.log("chay ProcessScore")
-// 	var names  = getProfessorNamesFromSearch();
-// 	var namesMap = new Map();
 
-//     names.forEach(function(name) {
-//         namesMap.set(name);
-//     });
-	
-// 	let profReviewList = (
-// 		namesMap.forEach(function (profName) {
-// 			getReview(profName);
-// 		})
-// 	);
 
-// 		// Insert score into DOM
-// 	for(const profReview of profReviewList){
-// 		let HydratedProfScoreComp = ProfReviewComp(profReview);
-// 		$(".rmpRes").append(HydratedProfScoreComp);
-// 	}
-// }
 async function processScore() {
-    console.log("chay ProcessScore");
     var names = getProfessorNamesFromSearch();
-    var namesMap = new Map();
 
-    names.forEach(function (name) {
-        namesMap.set(name);
+    let profReviewPromises = names.map(async function (profName) {
+        let review;
+        if (profName === "Staff" && profName === undefined) {
+            review = "N/A";
+        } else {
+            review = await getReview(profName);
+        }
+        return review;
     });
-	console.log(namesMap);
 
-	let profReviewPromises = Array.from(namesMap.keys()).map(async function (profName) {
-		console.log(profName)
-		let review = await getReview(profName);
-		console.log(review)
-		return review;
-	  });
-	
-	  // Wait for all promises to resolve
-	  let profReviewList = await Promise.all(profReviewPromises);
-	  
-	  // Log the review list to the console
+    // Wait for all promises to resolve
+    let profReviewList = await Promise.all(profReviewPromises);
 
     // Insert score into DOM
-    // for (const profReview of profReviewList) {
-    //     let HydratedProfScoreComp = ProfReviewComp(profReview);
-    //     $(".rmpRes").append(HydratedProfScoreComp);
-    // }
+    for (const [index, profReview] of profReviewList.entries()) {
+        if (names[index] === "Staff" || names[index] === undefined) {
+            $(".rmpRes").eq(index).text("N/A");
+        } 
+		else {
+			$(".rmpRes").eq(index).empty();
+			if(profReview!==null){
+				let HydratedProfScoreComp = ProfReviewComp(profReview);
+            	$(".rmpRes").eq(index).append(HydratedProfScoreComp);	
+			}
+			else $(".rmpRes").eq(index).text("N/A");
+            
+        }
+    }
 }
-
-async function getReview(profName) {
-	let profID = await fetchProfIDFromName(profName);
-	let profReview = await fetchProfReviewFromID(profID);
-	return profReview;
-}
-
-async function ProfReviewComp(profData) {
-	if (profData.numRatings == 0) {
-		return `<a target="_blank" href="https://www.ratemyprofessors.com/ShowRatings.jsp?tid=${profData.legacyId}">N/A</a>`;
+function ProfReviewComp(profData, hasNext) {
+	if (profData.numRatings === 0) {
+		return `<a target="_blank" href="https://www.ratemyprofessors.com/ShowRatings.jsp?tid=${profData.legacyId}">N/R</a>`;
 	}
 	let colorCode = "";
 	if (profData.avgRating < 2.5) {
@@ -205,7 +190,11 @@ async function ProfReviewComp(profData) {
 		colorCode = "#03C03C";
 	}
 
-
+	if (hasNext) {
+		addComma = ", ";
+	} else {
+		addComma = " ";
+	}
 
 	const divFormat = `
 	<div class="prof-container">
@@ -233,16 +222,21 @@ async function ProfReviewComp(profData) {
 
 	return divFormat;
 }
+async function getReview(profName) {
+	let profID = await fetchProfIDFromName(profName);
+	// console.log(profID);
+	let profReview = await fetchProfReviewFromID(profID);
+	// console.log(profReview);
+	return profReview;
+}
 //FETCHING
 async function fetchProfIDFromName(name) {
-	console.log("chay fetchingIDFromName")
 	try {
 		let response = await sendMessage({
 			contentScriptQuery: "queryProfID",
 			profName: name,
 		});
-		let profID = response.data.newSearch.teachers.edges[0].node.id;
-		console.log(profID)
+		const profID = response.data.newSearch.teachers.edges[0].node.id;
 		return profID;
 	} catch (error) {
 		return null;
