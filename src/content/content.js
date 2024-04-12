@@ -1,69 +1,50 @@
+window.addEventListener("load", waitForFirstLoad, false);
 
-// function waitForFirstLoad() {
-// 	let tableTimer = setInterval(checkForTableInDOM, 50);
+function waitForFirstLoad() {
+	let tableTimer = setInterval(checkForTableInDOM, 50);
 
-// 	function checkForTableInDOM() {
-// 		if (document.getElementsByClassName("class-results").length > 0) {
-// 			clearInterval(tableTimer);
-// 			startObserver();
-// 		}
-// 	}
-// }
+	function checkForTableInDOM() {
+		if (document.getElementsByClassName("results").length > 0) {
+			clearInterval(tableTimer);
+			startObserver();
+		}
+	}
+}
 
-// function log(message) {
-// 	// console.log(`%cRMAP`, "color: #26bfa5;", message);
-// }
+function startObserver() {
+	console.log("Page fully loaded");
+	// trigger first time
+	onRenderHandler();
 
-// function startObserver() {
-// 	log("Page fully loaded");
-// 	// trigger first time
-// 	onRenderHandler();
+}
+function onRenderHandler() {
+	// check if there is h1 tag with content "No classes found"
+	if ($('span:contains("No matching classes were found")').length > 0) {
+		console.log("NONE");
+		return;
+	}
+	console.log("FOUND");
 
-// 	// Set mutation observer on loading spinner to wait for table reload
-// 	// TODO: Check for table on page load
-// 	const observer = new MutationObserver((mutations) => {
-// 		mutations.forEach((mutation) => {
-// 			// check if a node is removed in this mutation
-// 			if (mutation.removedNodes.length > 0) {
-// 				// check if the removed node is the loading spinner
-// 				if (
-// 					mutation.removedNodes[0].className?.includes(
-// 						"spinner-button"
-// 					)
-// 				) {
-// 					log("Loading spinner removed");
-// 					// wait for table to load
-// 					setTimeout(() => {
-// 						log("Table loaded");
-// 						onRenderHandler();
-// 					}, 100);
-// 				}
-// 			}
-// 		});
-// 	});
+	
+	// Set up RMP column
+	var classListForColumns = ["class", "course", "note", "sec/ses", "type", "core/code", "title", "startDate", "instruction", "day", "room", "status", "maxEnr", "waitlist","courseMat"];
+	addClassToElements(".results th", classListForColumns);
 
-// 	const reactRootDOM = document.getElementById("root");
+	var classListBody = ["general","classTableInfo"]
+	addClassToElements("tbody" , classListBody)
 
-// 	observer.observe(reactRootDOM, { subtree: true, childList: true });
-// }
+	addRMPCol();
+	addClassToRows();
+	addClassToBox();
+	addBox();
+	processScore();
+	// for each row, get each row, fetch data, append data
+	
+}
 document.body.style.backgroundColor = '#ccc';
 
 
 
-function onRenderHandler() {
-	// check if there is h1 tag with content "No classes found"
-	if ($('span:contains("No matching classes were found.")').length > 0) {
-		log("NONE");
-		return;
-	}
-	log("FOUND");
-
-	// Set up RMP column
-	addRMPCol();
-
-	// for each row, get each row, fetch data, append data
-	processResultTable();
-}
 function addClassToElements(selector, classNames) {
     var elements = document.querySelectorAll(selector);
     elements.forEach(function(element, index) {
@@ -74,11 +55,7 @@ function addClassToElements(selector, classNames) {
 }
 
 // Usage example with different class names for each th
-var classListForColumns = ["class", "course", "note", "sec/ses", "type", "core/code", "title", "startDate", "instruction", "day", "room", "status", "maxEnr", "waitlist","courseMat"];
-addClassToElements(".results th", classListForColumns);
 
-var classListBody = ["general","classTableInfo"]
-addClassToElements("tbody" , classListBody)
 
 
 
@@ -96,7 +73,7 @@ function addRMPCol() {
 	// 	$(row).css("grid-column-start", "1");
 	// }
 }
-addRMPCol();
+
 
 
 function addClassToRows() {
@@ -109,7 +86,7 @@ function addClassToRows() {
 }
 
 // Call the function
-addClassToRows();
+
 
 function addClassToBox(){
     var rows = document.querySelectorAll('.classTableInfo tr');
@@ -121,7 +98,7 @@ function addClassToBox(){
         });
     });
 }
-addClassToBox();
+
 
 
 function addBox() {
@@ -135,17 +112,137 @@ function addBox() {
     });
 }
 
-addBox();
 
 
+
+
+function getProfessorNamesFromSearch() {
+    var professorNames = [];
+    var tableRows = document.querySelectorAll('table.results tbody tr');
+    
+    tableRows.forEach(function(row) {
+        var courseInfoCell = row.querySelectorAll('td:nth-child(7)')[0];
+        if (courseInfoCell) {
+            var courseInfo = courseInfoCell.textContent.trim();
+            var reversed = courseInfo.split('').reverse().join('');
+            if( reversed.substring(0,5) === "ffatS"){ 
+                professorNames.push('Staff');
+            }
+            else{
+                professorNames.push(courseInfo.split(',')[1]);
+            }
+        }
+    });
+    
+    return professorNames;
+}
+// async function processScore(){
+// 	console.log("chay ProcessScore")
+// 	var names  = getProfessorNamesFromSearch();
+// 	var namesMap = new Map();
+
+//     names.forEach(function(name) {
+//         namesMap.set(name);
+//     });
+	
+// 	let profReviewList = (
+// 		namesMap.forEach(function (profName) {
+// 			getReview(profName);
+// 		})
+// 	);
+
+// 		// Insert score into DOM
+// 	for(const profReview of profReviewList){
+// 		let HydratedProfScoreComp = ProfReviewComp(profReview);
+// 		$(".rmpRes").append(HydratedProfScoreComp);
+// 	}
+// }
+async function processScore() {
+    console.log("chay ProcessScore");
+    var names = getProfessorNamesFromSearch();
+    var namesMap = new Map();
+
+    names.forEach(function (name) {
+        namesMap.set(name);
+    });
+	console.log(namesMap);
+
+	let profReviewPromises = Array.from(namesMap.keys()).map(async function (profName) {
+		console.log(profName)
+		let review = await getReview(profName);
+		console.log(review)
+		return review;
+	  });
+	
+	  // Wait for all promises to resolve
+	  let profReviewList = await Promise.all(profReviewPromises);
+	  
+	  // Log the review list to the console
+
+    // Insert score into DOM
+    // for (const profReview of profReviewList) {
+    //     let HydratedProfScoreComp = ProfReviewComp(profReview);
+    //     $(".rmpRes").append(HydratedProfScoreComp);
+    // }
+}
+
+async function getReview(profName) {
+	let profID = await fetchProfIDFromName(profName);
+	let profReview = await fetchProfReviewFromID(profID);
+	return profReview;
+}
+
+async function ProfReviewComp(profData) {
+	if (profData.numRatings == 0) {
+		return `<a target="_blank" href="https://www.ratemyprofessors.com/ShowRatings.jsp?tid=${profData.legacyId}">N/A</a>`;
+	}
+	let colorCode = "";
+	if (profData.avgRating < 2.5) {
+		colorCode = "#FF9C9C";
+	} else if (profData.avgRating < 3.5) {
+		colorCode = "#FFD700";
+	} else {
+		colorCode = "#03C03C";
+	}
+
+
+
+	const divFormat = `
+	<div class="prof-container">
+	<a style="text-decoration: none;" target="_blank" href="https://www.ratemyprofessors.com/ShowRatings.jsp?tid=${
+		profData.legacyId
+	}">
+	<div>
+          <span class="prof-anchor" style="color:${colorCode}; font-size:1.5em; font-weight: bold;">${
+		profData.avgRating
+	}</span><span style="color:black;">${addComma}</span>
+    </div>
+	</a>
+	<div class="prof-info" >
+	<div class="prof-namebox">${
+		profData.name
+	} <span style="color:${colorCode}; font-weight: bold;">${
+		profData.avgRating
+	}</span>/5</div>
+	<div>${profData.avgDifficulty} difficulty</div>
+	<div>${profData.wouldTakeAgainPercent.toFixed(0)}% would take again</div>
+	<div>${profData.numRatings} rating(s)</div>
+	</div>
+	</div>
+  `;
+
+	return divFormat;
+}
 //FETCHING
 async function fetchProfIDFromName(name) {
+	console.log("chay fetchingIDFromName")
 	try {
 		let response = await sendMessage({
 			contentScriptQuery: "queryProfID",
 			profName: name,
 		});
 		let profID = response.data.newSearch.teachers.edges[0].node.id;
+		console.log(profID)
 		return profID;
 	} catch (error) {
 		return null;
@@ -166,4 +263,12 @@ async function fetchProfReviewFromID(ID) {
 	} catch (error) {
 		return null;
 	}
+}
+
+function sendMessage(message) {
+	return new Promise((resolve, _) => {
+		chrome.runtime.sendMessage(message, (res) => {
+			resolve(res);
+		});
+	});
 }

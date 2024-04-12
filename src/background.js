@@ -56,12 +56,13 @@ const fetchProfessorIdForSchool = async (profName, schoolId) => {
         body: JSON.stringify({
             query: PROFESSOR_ID_QUERY,
             variables: {
-                query: { text: profName, schoolID: schoolId },
+                query: { text: profName, schoolID: schoolId }, // USE the ID QUERY
             },
         }),
     });
     return response.json();
 };
+
 
 const fetchProfessorData = async (profId) => {
     const response = await fetch("https://www.ratemyprofessors.com/graphql", {
@@ -71,9 +72,9 @@ const fetchProfessorData = async (profId) => {
             "Content-Type": "application/json",
         },
         body: JSON.stringify({
-            query: PROFESSOR_DATA_QUERY,
+            query: PROFESSOR_DATA_QUERY, 
             variables: {
-                id: profId,
+                id: profId, // USE the Data query with ID
             },
         }),
     });
@@ -81,6 +82,7 @@ const fetchProfessorData = async (profId) => {
     if (data.errors) {
         throw new Error(data.errors[0].message);
     }
+    console.log(data)
     return data;
 };
 
@@ -91,7 +93,6 @@ const queryProfessorData = async (profName) => {
         if (professorIdResponse) {
             const professorId = professorIdResponse.data.newSearch.teachers.edges[0].node.id;
             const professorData = await fetchProfessorData(professorId);
-            console.log(`Professor data was created`);
             return professorData;
             // const filePath = await writeProfessorDataToFile(professorId, professorData);
             
@@ -102,4 +103,18 @@ const queryProfessorData = async (profName) => {
         console.error("An error occurred:", error.message);
     }
 };
-// queryProfessorData("Liran Ma");
+
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+	switch (request.contentScriptQuery) {
+		case "queryProfID":
+			queryProfID(request.profName, sendResponse);
+			return true;
+
+		case "queryProfData":
+			queryProfData(request.profID, sendResponse);
+			return true;
+
+		default:
+			return true;
+	}
+});

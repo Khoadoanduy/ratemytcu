@@ -1,7 +1,7 @@
 {
 	"name": "Rate My TCU Professors",
-	"version": "2.2.1",
-	"description": "Rate My Professors Plugin for TCU Class Search. Allowing you to directly view professor ratings on the TCU Class Search page.",
+	"version": "1.0.0",
+	"description": "Rate My Professors Extension for TCU Class Search.",
 	"author": "khoadoanduy05@gmail.com",
 	"background": {
 		"service_worker": "background.js"
