@@ -111,6 +111,17 @@ function addBox() {
         }
     });
 }
+function addBoxLogin() {
+    $('.classTableInfo tr').each(function() {
+        var row = $(this);
+        if (!row.find('.rmpRes').length) {
+            var anchorElement = $("<a>").attr("href", "javascript:__doPostBack('lgvInstructor$ctl01','')").text("login");
+            var placeholderBox = $("<td>").addClass("rmpRes").append(anchorElement);
+            row.find(".box7").after(placeholderBox);
+        }
+    });
+}
+
 
 
 
@@ -140,44 +151,102 @@ function getProfessorNamesFromSearch() {
             }
         }
     });
-    
     return professorNames;
 }
-
-
 async function processScore() {
-    var names = getProfessorNamesFromSearch();
+    var names = getProfessorNamesFromSearch(); // names is an array
+	if( names.length > 4 && names[0] === undefined && names[1] === undefined && names[2] === undefined ){
+		// review = $("<a>").attr("href", "javascript:__doPostBack('lgvInstructor$ctl01','')").text("login");
+		// Step 1: Create the anchor element
+		$(".rmpRes").text("");
+		var anchorElement = document.createElement("a");
 
-    let profReviewPromises = names.map(async function (profName) {
-        let review;
-        if (profName === "Staff" && profName === undefined) {
-            review = "N/A";
-        } else {
-            review = await getReview(profName);
-        }
-        return review;
-    });
+		// Step 2: Set the href attribute
+		anchorElement.setAttribute("href", "javascript:__doPostBack('lgvInstructor$ctl01','')");
 
-    // Wait for all promises to resolve
-    let profReviewList = await Promise.all(profReviewPromises);
+		// Step 3: Set the text content
+		anchorElement.textContent = "login";
 
-    // Insert score into DOM
-    for (const [index, profReview] of profReviewList.entries()) {
-        if (names[index] === "Staff" || names[index] === undefined) {
-            $(".rmpRes").eq(index).text("N/A");
-        } 
-		else {
-			$(".rmpRes").eq(index).empty();
-			if(profReview!==null){
-				let HydratedProfScoreComp = ProfReviewComp(profReview);
-            	$(".rmpRes").eq(index).append(HydratedProfScoreComp);	
+		// Step 4: Find the <td> element with class "rmpRes"
+
+		// Step 5: Append the anchor element to the <td> element
+		$(".rmpRes").append(anchorElement);
+		return;
+	}
+	else{
+		
+		let profReviewPromises = names.map(async function (profName) {
+			let review;
+			if (profName === "Staff" || profName === undefined) {
+				review = "N/A";
+			} else {
+				review = await getReview(profName);
 			}
-			else $(".rmpRes").eq(index).text("N/A");
-            
-        }
-    }
+			return review;
+		});
+
+		// Wait for all promises to resolve
+		let profReviewList = await Promise.all(profReviewPromises);
+
+		// Insert score into DOM
+		for (const [index, profReview] of profReviewList.entries()) {
+			if (names[index] === "Staff" || names[index] === undefined) {
+				$(".rmpRes").eq(index).text("N/A");
+			} else {
+				$(".rmpRes").eq(index).empty();
+				if (profReview !== null && !(profReview instanceof jQuery)) {
+					let HydratedProfScoreComp = ProfReviewComp(profReview);
+					$(".rmpRes").eq(index).append(HydratedProfScoreComp);
+				} else if (profReview instanceof jQuery) {
+					$(".rmpRes").eq(index).append(profReview);
+				} else {
+					$(".rmpRes").eq(index).text("N/A");
+				}
+
+			}
+		}
+	}
 }
+
+// async function processScore() {
+//     var names = getProfessorNamesFromSearch();
+// 	// names is an array
+
+//     let profReviewPromises = names.map(async function (profName) {
+//         let review;
+// 		if (names.length > 2 && names[0] === "undefined" && names[1] === "undefined" && names[2] === "undefined" )
+// 		{
+// 			review = $("<a>").attr("href", "javascript:__doPostBack('lgvInstructor$ctl01','')").text("login");
+// 		}
+//         else if (profName === "Staff" && profName === undefined) {
+//             review = "N/A";
+//         } else {
+//             review = await getReview(profName);
+//         }
+//         return review;
+//     });
+
+//     // Wait for all promises to resolve
+//     let profReviewList = await Promise.all(profReviewPromises);
+
+//     // Insert score into DOM
+//     for (const [index, profReview] of profReviewList.entries()) {
+//         if (names[index] === "Staff" || names[index] === undefined) {
+//             $(".rmpRes").eq(index).text("N/A");
+//         } 
+// 		else {
+// 			$(".rmpRes").eq(index).empty();
+// 			if(profReview!==null){
+// 				let HydratedProfScoreComp = ProfReviewComp(profReview);
+//             	$(".rmpRes").eq(index).append(HydratedProfScoreComp);	
+// 			}
+// 			else $(".rmpRes").eq(index).text("N/A");
+            
+//         }
+//     }
+// }
 function ProfReviewComp(profData, hasNext) {
+	console.log(profData);
 	if (profData.numRatings === 0) {
 		return `<a target="_blank" href="https://www.ratemyprofessors.com/ShowRatings.jsp?tid=${profData.legacyId}">N/R</a>`;
 	}
@@ -209,8 +278,9 @@ function ProfReviewComp(profData, hasNext) {
 	</a>
 	<div class="prof-info" >
 	<div class="prof-namebox">${
-		profData.name
-	} <span style="color:${colorCode}; font-weight: bold;">${
+		profData.firstName 
+	} ${profData.lastName}: </
+	 <span style="color:${colorCode}; font-weight: bold;">${
 		profData.avgRating
 	}</span>/5</div>
 	<div>${profData.avgDifficulty} difficulty</div>
