@@ -20,8 +20,8 @@ Link to extension: [Chrome Web Store](https://chromewebstore.google.com/detail/r
 
 TCU class search site without Rate My TCU Professors:
 
-![Without RateMyASUProfessors](pics/without.jpeg)
+![Without RateMyTCUProfessors](pics/without.jpeg)
 
 TCU class search site with Rate My TCU Professors:
 
-![With RateMyASUProfessors](pics/with.jpeg)
+![With RateMyTCUProfessors](pics/with.png)
