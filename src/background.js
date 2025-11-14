@@ -1,5 +1,4 @@
 const AUTHORIZATION_TOKEN = "Basic dGVzdDp0ZXN0";
-const SCHOOL_IDS = ["U2Nob29sLTEwMDg="];
 
 const PROFESSOR_ID_QUERY = `
     query ($query: TeacherSearchQuery!) {
@@ -8,6 +7,9 @@ const PROFESSOR_ID_QUERY = `
                 edges {
                     node {
                         id
+                        firstName
+                        lastName
+                        legacyId
                     }
                 }
             }
@@ -37,28 +39,72 @@ const fetchProfIDFallbackLoop = (profName) => {
   return new Promise(async (resolve, reject) => {
     let response = null;
     let raw_response = null;
-    for (let i = 0; i < SCHOOL_IDS.length; i++) {
-      const SCHOOL_ID = SCHOOL_IDS[i];
-      raw_response = await fetch("https://www.ratemyprofessors.com/graphql", {
-        method: "POST",
-        headers: {
-          Authorization: AUTHORIZATION_TOKEN,
-        },
-        body: JSON.stringify({
-          query: PROFESSOR_ID_QUERY,
-          variables: {
-            query: { text: profName, schoolID: SCHOOL_ID },
-          },
-        }),
-      });
 
-      response = await raw_response.json();
-      if (response.data.newSearch.teachers.edges.length !== 0) {
-        resolve(response);
-        return;
-      }
+    const SCHOOL_ID = "U2Nob29sLTEwMDg=";
+    console.log(profName, "from ID Fall Back Loo");
+
+    raw_response = await fetch("https://www.ratemyprofessors.com/graphql", {
+      method: "POST",
+      headers: {
+        Authorization: AUTHORIZATION_TOKEN,
+      },
+      body: JSON.stringify({
+        query: PROFESSOR_ID_QUERY,
+        variables: {
+          query: { text: profName, schoolID: SCHOOL_ID },
+        },
+      }),
+    });
+
+    response = await raw_response.json();
+
+    // normalize helper
+    const normalize = (s) => (s || "").trim().toLowerCase();
+
+    // parse incoming profName into first/last (supports "First Last", "Last", "First Middle Last")
+    const parts = (profName || "").trim().split(/\s+/).filter(Boolean);
+    let wantedFirst = "";
+    let wantedLast = "";
+    if (parts.length === 1) {
+      wantedLast = parts[0];
+    } else {
+      wantedFirst = parts[0];
+      wantedLast = parts[parts.length - 1];
     }
 
+    const edges =
+      (response &&
+        response.data &&
+        response.data.newSearch &&
+        response.data.newSearch.teachers &&
+        response.data.newSearch.teachers.edges) ||
+      [];
+
+    if (edges.length === 0) {
+      resolve(response);
+      return;
+    }
+
+    // try exact first+last match (case-insensitive), otherwise match last name only
+    const matched = edges.find((e) => {
+      const node = e.node || {};
+      const fn = normalize(node.firstName);
+      const ln = normalize(node.lastName);
+      if (wantedFirst) {
+        return ln === normalize(wantedLast) && fn === normalize(wantedFirst);
+      }
+      return ln === normalize(wantedLast);
+    });
+
+    if (matched) {
+      // keep the shape the rest of your code expects, but narrow it to the matched edge
+      const filteredResponse = JSON.parse(JSON.stringify(response));
+      filteredResponse.data.newSearch.teachers.edges = [matched];
+      resolve(filteredResponse);
+      return;
+    }
+
+    // no precise match — return original response
     resolve(response);
     return;
   });
@@ -66,7 +112,6 @@ const fetchProfIDFallbackLoop = (profName) => {
 
 const profIDCache = new Map();
 const fetchProfID = async (profName) => {
-  console.log(profName);
   if (!profIDCache.has(profName)) {
     const profIDFetch = fetchProfIDFallbackLoop(profName);
     profIDCache.set(profName, profIDFetch);
@@ -99,7 +144,7 @@ const fetchProfData = (profID) => {
       }),
     });
     profDataCache.set(profID, profDataFetch);
-  } // Debugging purposes
+  }
   return profDataCache.get(profID);
 };
 
