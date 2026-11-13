@@ -152,21 +152,32 @@ function getProfessorNamesFromSearch() {
   tableRows.forEach(function (row) {
     var courseInfoCell = row.querySelector("td.box7");
     if (courseInfoCell) {
-      var courseInfoLines = courseInfoCell.innerHTML.trim().split("<br>");
-      var courseInfo = courseInfoLines[courseInfoLines.length - 1]; // Taking the last line
-      var reversed = courseInfo.split("").reverse().join("");
-      if (reversed.substring(0, 5) === "ffatS") {
+      var courseInfoLines = courseInfoCell.innerHTML
+        .split(/<br\s*\/?>/i)
+        .map(function (line) {
+          var element = document.createElement("span");
+          element.innerHTML = line;
+          return element.textContent.trim();
+        })
+        .filter(Boolean);
+      var courseInfo = courseInfoLines[courseInfoLines.length - 1] || "";
+
+      if (/\bstaff\b/i.test(courseInfo)) {
         professorNames.push("Staff");
+        return;
+      }
+
+      var parts = courseInfo.split(",");
+      if (parts.length >= 2) {
+        var lastName = parts[0].trim();
+        var firstName = parts
+          .slice(1)
+          .join(" ")
+          .trim()
+          .split(/\s+/)[0];
+        professorNames.push([firstName, lastName].filter(Boolean).join(" "));
       } else {
-        var parts = courseInfo.split(",");
-        if (parts.length === 2) {
-          var names = parts[1].trim().split(" ");
-          var fullName = parts[0].trim() + " " + names[0];
-          var trimmed = fullName.trim().replace("</font>", "");
-          professorNames.push(trimmed);
-        } else {
-          professorNames.push(parts[1]);
-        }
+        professorNames.push(undefined);
       }
     }
   });
@@ -299,7 +310,11 @@ async function fetchProfIDFromName(name) {
       contentScriptQuery: "queryProfID",
       profName: name,
     });
-    const profID = response.data.newSearch.teachers.edges[0].node.id;
+    const edges = response?.data?.newSearch?.teachers?.edges || [];
+    const profID = edges[0]?.node?.id;
+    if (!profID) {
+      return null;
+    }
     return profID;
   } catch (error) {
     return null;
@@ -323,8 +338,12 @@ async function fetchProfReviewFromID(ID) {
 }
 
 function sendMessage(message) {
-  return new Promise((resolve, _) => {
+  return new Promise((resolve, reject) => {
     chrome.runtime.sendMessage(message, (res) => {
+      if (chrome.runtime.lastError) {
+        reject(chrome.runtime.lastError);
+        return;
+      }
       resolve(res);
     });
   });
