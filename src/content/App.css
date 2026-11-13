@@ -1,50 +1,106 @@
-/* Medium devices (tablets, less than 992px) */
-@media (max-width: 991.98px) {
-	#class-results .class-accordion .rmp {
-		padding-left: 10px;
-	}
+.prof-container {
+  position: relative;
+  display: inline-block;
 }
 
+.prof-info {
+  margin-left: 1px;
+  padding: 12px;
+  position: absolute;
+  top: 0;
+  left: 100%;
+  opacity: 0;
 
-.prof-container {
-	position: relative;
-	display: inline-block;
-  }
-  
-  .prof-info {
-	margin-left: 15px;
-	padding: 10px;
-	position: absolute;
-	top: 0; 
-	left: 100%; 
-	opacity: 0;
-	background-color: white;
-	transition: opacity .4s ease;
-	pointer-events: none; 
-	box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
-	border-radius: 5px;
-	font-family: 'Arial', sans-serif;
-	width: 180px;
-	height: auto;
-	
-  }
-  
-  .prof-container:hover .prof-info {
-	background-color: white;
-	transition: opacity .4s ease;
-	opacity: 1;
-	box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
-	z-index: 1;
-  }
+  /* High contrast solid background & crisp border */
+  background-color: #ffffff !important;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
 
-  .prof-container:hover .prof-anchor {
-	background-color: rgba(246, 243, 243, 0.995);
-  }
+  /* Sharper box shadow to pop against the table */
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.25),
+    0 8px 10px -6px rgba(0, 0, 0, 0.2);
 
-  .prof-namebox{
-	margin-bottom: 3px;
-	padding: 2px;
-	padding-left: 4px;
-	box-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
-	border-radius: 5px;
-  }
+  /* Typography sharpness */
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+    Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  transition: opacity 0.2s ease-in-out;
+  pointer-events: none;
+  width: 210px;
+  text-align: center;
+  z-index: 9999; /* Ensure it stays above all table content */
+}
+
+.prof-container:hover .prof-info {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.prof-name {
+  font-size: 1.1em;
+  font-weight: 700;
+  color: #111827; /* Deep charcoal for high contrast */
+  margin-bottom: 10px;
+  line-height: 1.2;
+}
+
+/* 2 ratings box display */
+.ratings-box-container {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.rating-box {
+  flex: 1;
+  background-color: #f3f4f6; /* Higher contrast card background */
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 8px 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.rating-val {
+  font-size: 1.25em;
+  font-weight: 800;
+  color: #111827;
+  line-height: 1.1;
+}
+
+.rating-label {
+  font-size: 0.72em;
+  font-weight: 600;
+  color: #4b5563; /* Darker gray for crisp readability */
+  margin-top: 4px;
+}
+
+.prof-stats {
+  font-size: 0.85em;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 10px;
+}
+
+.prof-link-row {
+  border-top: 1px solid #e5e7eb;
+  padding-top: 8px;
+  margin-top: 4px;
+}
+
+.prof-rmp-link {
+  font-size: 0.8em;
+  color: #2563eb; /* High contrast vibrant blue */
+  text-decoration: none;
+  font-weight: 600;
+  display: inline-block;
+}
+
+.prof-rmp-link:hover {
+  text-decoration: underline;
+  color: #1d4ed8;
+}

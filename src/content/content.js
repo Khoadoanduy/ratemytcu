@@ -33,6 +33,7 @@ function onRenderHandler() {
     "type",
     "core/code",
     "title",
+    "rmp",
     "startDate",
     "instruction",
     "day",
@@ -42,12 +43,12 @@ function onRenderHandler() {
     "waitlist",
     "courseMat",
   ];
+  addRMPCol();
   addClassToElements(".results th", classListForColumns);
 
   var classListBody = ["general", "classTableInfo"];
   addClassToElements("tbody", classListBody);
 
-  addRMPCol();
   addClassToRows();
   addClassToBox();
   addBox();
@@ -67,10 +68,28 @@ function addClassToElements(selector, classNames) {
 // Usage example with different class names for each th
 
 function addRMPCol() {
-  if ($("th .rmp").length == 0) {
-    let placeholderHeader = $("<th>").addClass("rmp").text("RMP");
-    $(".title").after(placeholderHeader);
+  if ($(".results th.rmp").length > 0) {
+    $(".results th.rmp").first().text("RMP");
+    return;
   }
+
+  const nativeRmpHeader = $(".results th").filter(function () {
+    return $(this).text().trim() === "RMP";
+  });
+
+  if (nativeRmpHeader.length > 0) {
+    const columnIndex = nativeRmpHeader.first().index();
+    nativeRmpHeader.first().remove();
+    $(".results tbody tr").each(function () {
+      $(this).children("td").eq(columnIndex).remove();
+    });
+  }
+
+  let placeholderHeader = $("<th>").addClass("rmp").text("RMP");
+  const titleHeader = $(".results th.title").length
+    ? $(".results th.title").first()
+    : $(".results th").eq(6);
+  titleHeader.after(placeholderHeader);
 
   // let tableRows = $(".course");
   // for (row of tableRows) {
@@ -217,46 +236,57 @@ function ProfReviewComp(profData, hasNext) {
   if (profData.numRatings === 0) {
     return `<a target="_blank" href="https://www.ratemyprofessors.com/ShowRatings.jsp?tid=${profData.legacyId}">N/R</a>`;
   }
-  let colorCode = "";
-  if (profData.avgRating < 2.5) {
-    colorCode = "#FF9C9C";
-  } else if (profData.avgRating < 3.5) {
-    colorCode = "#FFD700";
-  } else {
-    colorCode = "#03C03C";
-  }
 
-  if (hasNext) {
-    addComma = ", ";
-  } else {
-    addComma = " ";
-  }
+  let colorCode = "#03C03C";
+  if (profData.avgRating < 2.5) colorCode = "#FF9C9C";
+  else if (profData.avgRating < 3.5) colorCode = "#FFD700";
 
-  const divFormat = `
-	<div class="prof-container">
-	<a style="text-decoration: none;" target="_blank" href="https://www.ratemyprofessors.com/ShowRatings.jsp?tid=${
-    profData.legacyId
-  }">
-	<div>
-          <span class="prof-anchor" style="color:${colorCode}; font-size:1.5em; font-weight: bold;">${
+  let addComma = hasNext ? ", " : " ";
+  const rmpUrl = `https://www.ratemyprofessors.com/ShowRatings.jsp?tid=${profData.legacyId}`;
+
+  return `
+    <div class="prof-container">
+      <a style="text-decoration: none;" target="_blank" href="${rmpUrl}">
+        <span class="prof-anchor" style="color:${colorCode}; font-size:1.5em; font-weight: bold;">
+          ${profData.avgRating}
+        </span>
+        <span style="color:black;">${addComma}</span>
+      </a>
+      
+      <div class="prof-info">
+        <div class="prof-name">
+          <strong>${profData.firstName} ${profData.lastName}</strong>
+        </div>
+        
+        <div class="ratings-box-container">
+          <div class="rating-box">
+            <span class="rating-val" style="color:${colorCode};">${
     profData.avgRating
-  }</span><span style="color:black;">${addComma}</span>
+  }</span>
+            <span class="rating-label">Overall Rating</span>
+          </div>
+          <div class="rating-box">
+            <span class="rating-val">${profData.avgDifficulty}</span>
+            <span class="rating-label">Difficulty</span>
+          </div>
+        </div>
+
+        <div class="prof-stats">
+          ${profData.wouldTakeAgainPercent.toFixed(0)}% would take again
+        </div>
+
+        <div class="prof-link-row">
+          <a class="prof-rmp-link" target="_blank" href="${rmpUrl}">
+            View ${profData.numRatings} rating${
+    profData.numRatings === 1 ? "" : "s"
+  } on RateMyProfessors
+          </a>
+        </div>
+      </div>
     </div>
-	</a>
-	<div class="prof-info" >
-	<div class="prof-namebox">${profData.firstName} ${profData.lastName}: </
-	 <span style="color:${colorCode}; font-weight: bold;">${
-    profData.avgRating
-  }</span>/5</div>
-	<div>${profData.avgDifficulty} difficulty</div>
-	<div>${profData.wouldTakeAgainPercent.toFixed(0)}% would take again</div>
-	<div>${profData.numRatings} rating(s)</div>
-	</div>
-	</div>
   `;
-
-  return divFormat;
 }
+
 async function getReview(profName) {
   let profID = await fetchProfIDFromName(profName);
   let profReview = await fetchProfReviewFromID(profID);
